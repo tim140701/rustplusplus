@@ -18,6 +18,11 @@
 
 */
 
+const Fs = require('fs');
+const Path = require('path');
+
+loadEnvFile(Path.join(__dirname, '..', '.env'));
+
 module.exports = {
     general: {
         language: process.env.RPP_LANGUAGE || 'en',
@@ -27,8 +32,42 @@ module.exports = {
     },
     discord: {
         username: process.env.RPP_DISCORD_USERNAME || 'rustplusplus',
-        clientId: process.env.RPP_DISCORD_CLIENT_ID || '',
-        token: process.env.RPP_DISCORD_TOKEN || '',
+        clientId: process.env.RPP_DISCORD_CLIENT_ID || '1359819416292032614',
+        token: getRequiredEnv('RPP_DISCORD_TOKEN'),
         needAdminPrivileges: process.env.RPP_NEED_ADMIN_PRIVILEGES || true, /* If true, only admins can delete (server, switch..), manage credentials and reset a channel */
     }
 };
+
+function loadEnvFile(file) {
+    if (!Fs.existsSync(file)) return;
+
+    const lines = Fs.readFileSync(file, 'utf8').split(/\r?\n/);
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed === '' || trimmed.startsWith('#')) continue;
+
+        const equalsIndex = trimmed.indexOf('=');
+        if (equalsIndex === -1) continue;
+
+        const key = trimmed.slice(0, equalsIndex).trim();
+        let value = trimmed.slice(equalsIndex + 1).trim();
+
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+        }
+
+        if (!process.env.hasOwnProperty(key)) {
+            process.env[key] = value;
+        }
+    }
+}
+
+function getRequiredEnv(key) {
+    const value = process.env[key];
+    if (!value) {
+        throw new Error(`Missing required environment variable: ${key}`);
+    }
+
+    return value;
+}
